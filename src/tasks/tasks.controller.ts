@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { TasksService } from './tasks.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -31,5 +39,11 @@ export class TasksController {
     @Body() dto: Partial<CreateTaskDto>,
   ) {
     return this.tasksService.update(id, user.id, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a task' })
+  delete(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.tasksService.delete(id, user.id);
   }
 }
