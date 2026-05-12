@@ -6,6 +6,12 @@ import type { NewUser } from '../db/schema';
 
 @Injectable()
 export class UsersService {
+  async findByVerificationToken(token: string) {
+    return db.query.users.findFirst({
+      where: eq(users.verificationToken, token),
+    });
+  }
+
   async findByEmail(email: string) {
     return db.query.users.findFirst({
       where: eq(users.email, email),
@@ -20,6 +26,8 @@ export class UsersService {
 
   async create(data: NewUser) {
     const [user] = await db.insert(users).values(data).returning();
+
+    return user;
   }
 
   async update(id: string, data: Partial<typeof users.$inferInsert>) {
