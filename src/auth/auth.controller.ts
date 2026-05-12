@@ -24,6 +24,9 @@ import { LoginDto } from './dto/login.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { User } from '../db/schema';
+import { resendEmailDto } from './dto/resendEmail.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -43,10 +46,17 @@ export class AuthController {
   @Get('verify-email')
   @ApiOperation({ summary: 'Verify email address and auto login' })
   async verifyEmail(
-    @Query() token: string,
+    @Query('token') token: string,
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService.verifyEmail(token, res);
+  }
+
+  @Public()
+  @Post('resend-verify-email')
+  @ApiOperation({ summary: 'Resend verify email' })
+  async resendVerifyEmail(@Body() dto: resendEmailDto) {
+    return this.authService.resendVerifyEmail(dto);
   }
 
   // POST /api/auth/login
@@ -100,5 +110,23 @@ export class AuthController {
       role: user.role,
       isVerified: user.isVerified,
     };
+  }
+
+  // POST /api/auth/forgot-password
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request a password reset email' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  // POST /api/auth/reset-password
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password using token from email' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.password);
   }
 }

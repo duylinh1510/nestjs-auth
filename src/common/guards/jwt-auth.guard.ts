@@ -10,8 +10,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { UsersService } from '../../users/users.service';
-import { Observable } from 'rxjs';
 import { User } from '../../db/schema';
+import type { Request } from 'express';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -23,6 +23,8 @@ export class JwtAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    type RequestWithUser = Request & { user?: User };
+    // if @Public() is applied, skip all auth checks entirely.
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -30,9 +32,7 @@ export class JwtAuthGuard implements CanActivate {
 
     if (isPublic) return true;
 
-    const request = context
-      .switchToHttp()
-      .getRequest<Request & { user: User }>();
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
@@ -43,7 +43,7 @@ export class JwtAuthGuard implements CanActivate {
 
     try {
       payload = await this.jwtService.verifyAsync(token, {
-        secret: this.configService.get('JWT_ACCESS_SECRET'),
+        secret: this.configService.getOrThrow('JWT_ACCESS_SECRET'),
       });
     } catch {
       throw new UnauthorizedException('Invalid or expired access token');
@@ -59,6 +59,7 @@ export class JwtAuthGuard implements CanActivate {
     return true;
   }
 
+  // Expects the standard Authorization: Bearer <token> format. Returns undefined if missing or malformed.
   private extractTokenFromHeader(request: Request): string | undefined {
     const [type, token] =
       (

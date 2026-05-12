@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 
@@ -14,17 +14,24 @@ export class EmailService {
     const appUrl = this.configService.get<string>('APP_URL');
     const verificationUrl = `${appUrl}/api/auth/verify-email?token=${token}`;
 
-    await this.resend.emails.send({
-      from: 'onboarding@resend.dev',
-      to: email,
-      subject: `Verify your email`,
-      html: `
-            <h2>Welcome! Verify your email</h2>
-            <p>Click the link below to verify your email address. This link expires in 24 hours.</p>
-            <a href="${verificationUrl}">Verify Email</a>
-            <p>If you didn't create an account, you can safely ignore this email</p>
-      `,
-    });
+    try {
+      await this.resend.emails.send({
+        from: 'onboarding@resend.dev',
+        to: email,
+        subject: `Verify your email`,
+        html: `
+              <h2>Welcome! Verify your email</h2>
+              <p>Click the link below to verify your email address. This link expires in 24 hours.</p>
+              <a href="${verificationUrl}">Verify Email</a>
+              <p>If you didn't create an account, you can safely ignore this email</p>
+        `,
+      });
+    } catch (error) {
+      console.error('Failed to send verification email', error);
+      throw new InternalServerErrorException(
+        'Unable to send verification email. Please try again later.',
+      );
+    }
   }
 
   async sendPasswordResetEmail(email: string, token: string) {
